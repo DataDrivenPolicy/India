@@ -1,0 +1,88 @@
+---
+title: "Analysing India's demonetisation and its potential impact on black money."
+output:  html_document
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits=4,scipen = 9)
+library(xlsx)
+library(dplyr)
+library(tidyr)
+library(xtable)
+lakh<-100000;
+crore<-100*lakh;
+```
+
+
+
+```{r}
+df<-read.xlsx2("commonData.xlsx",1,colClasses = c("character","numeric","numeric","character","character"))
+df1<-df%>% mutate(Value=Value*multiplier)
+cd<-as.list(df1$Value)
+names(cd)<-df1$Item
+```
+
+# Understanding currencies in circulation.
+
+As per data from the RBI there are  `r cd$amount/(lakh*crore)` lakh crore worth of currencies in circulation.
+What this means is that if we take all the currencies printed since Independence and substract those currencies that were withdrawn or returned as soiled/multilated and destroyed, we get a value of Rs `r cd$amount/(lakh*crore)` lakh crore.
+
+## What does it mean to you and me?
+
+The population of India is `r cd$Population/crore` crores. If the total currencies in circulation are equally owned by each Indian, then the cash in hand for each Indian comes to `r cd$amount/(cd$Population)` Rupees.
+
+`r cd$"population with bankaccount %"` % of Indians have bank accounts. `r cd$"dormant account percentage"` % of the accounts are dormant.
+```{r}
+activeAccount<-cd$"population with bankaccount %" * cd$"dormant account percentage"/100
+```
+i.e. only `r activeAccount` % of the population have an active bank account.
+
+The average annual per capita income for an average Indian is Rs `r cd$"Per Capita Income Annual"`
+i.e. the combined income of all Indians is `r cd$Population * cd$"Per Capita Income Annual"/(lakh*crore)` lakh crore. Even if we assume that every bank account is a salary account and the rest of the population get their income as cash, then the cash payout is  `r cd$Population * cd$"Per Capita Income Annual" *(100-activeAccount)/(100*lakh*crore)` lakh crore rupees p.a. 
+
+If we look at only the expenditure number, then on the first of every month every citizen get's ready to spend Rs `r cd$"per capita expenditure Annual"/12` resulting in a total of `r cd$Population* cd$"per capita expenditure Annual"/(lakh*crore*12)` lakh crore Rs. being kept ready to meet this months expenses. Since the demonetisation scheme was launched in the initial part of the week, most of this cash is still unspent and has to be converted to the new currency ASAP to ensure household financial  liquidity.
+
+```{r}
+annualPaymentsNonBanking<- cd$Population * cd$"Per Capita Income Annual" *(100-activeAccount)/(100*lakh*crore)
+annualExpenditureNonBanking<- cd$Population * cd$"per capita expenditure Annual" *(100-activeAccount)/(100*lakh*crore)
+annualSavingsNonBanking=annualPaymentsNonBanking-annualExpenditureNonBanking
+```
+The cash payout as salary occurs in the first week of every month. So a total of `r annualPaymentsNonBanking/12` lakh crore rupees is earned by the average non-banking Indian every month. Which also indicates that this amount cannot be locked up as black money as it has to be in regular circulation.
+
+If we look at the monthly expenditure and calculate the savings that will be carried over in cash form by this section we get `r (annualPaymentsNonBanking-annualExpenditureNonBanking)/12` lakh crores saved every month. If this sector decides to keep their saving in cash format, then the currency in circulation will be locked up in `r (cd$amount/(lakh*crore) - (annualPaymentsNonBanking/12))/(annualSavingsNonBanking/12)` months.
+
+The remaining `r activeAccount`% would withdraw atleast cash equal to their monthly needs from the bank.
+NSSO survey indicates that the monthly expenditure per person is `r cd$"per capita expenditure Annual"/12` resulting in a sum of `r activeAccount*cd$Population*cd$"per capita expenditure Annual"/(100*12*lakh*crore)` lakh crore being withdrawn from the banks monthly.
+
+The average annual expenditure for an Indian is Rs `r cd$"per capita expenditure Annual"`
+
+```{r}
+avgSavings<- cd$"Per Capita Income Annual"- cd$"per capita expenditure Annual"
+```
+
+
+
+The annual savings are `r avgSavings*cd$Population /cd$amount` times more than the cash available in the system
+
+Given that it is not possible to store money in cash format for more than two months without creating a currency crisis. The excess savings every year needs to be converted in some other form.
+
+The banks have declared an additional deposit of only Rs `r cd$"annual FD Increase"/(lakh*crore)` lakh crore in this financial year
+
+```{r}
+popNonBankingSavings<-((100-activeAccount)/100) * avgSavings*cd$Population/(lakh*crore)
+```
+
+48% of the population is engaged in agriculture where the revenue will be available either once, twice or thrice an year depending on the crop being grown and the availability of irrigation. So even in the best case this section has to hold 4 months worth of liquid cash in reserve.
+Assuming that a person without access to banking will maintain cash liquidity for emergencies equal to atleast a month expenditure.
+```{r}
+reserveCash<-(.48*4+.52*1)*cd$"per capita expenditure Annual"/12
+```
+resulting in a reserve cash of Rs `r reserveCash` per person or `r reserveCash *cd$Population/(lakh*crore)` nation wide.
+
+note: the numbers used in these calculation and their source are as follows
+```{r results="asis"}
+print(xtable(df),type="html")
+```
+
