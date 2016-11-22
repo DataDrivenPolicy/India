@@ -1,0 +1,36 @@
+---
+title: "Banananomics"
+output:
+  html_document: 
+    self_contained: no
+  html_notebook: default
+---
+```{r}
+rm(list=ls())
+library(XML)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(rgdal)
+library(leaflet)
+```
+There are reports of various informal markets collapsing due to demonetisation. A collapse in market should result in either low volume of goods sold or if the volume
+```{r}
+if(!file.exists("Banana_2016.xml")){
+  download.file("https://data.gov.in/sites/default/files/Banana_2016.xml")
+}
+x<-xmlParse("Banana_2016.xml")
+y<-getNodeSet(x,'//Table')
+z<-xmlToDataFrame(y)
+a<-z%>%mutate(Date=dmy(Arrival_Date))%>%filter(Date>dmy("01/11/2016"))%>%mutate(wk=ifelse(Date<dmy("09/11/2016"),"wk1",ifelse(Date<dmy("15/11/2016"),"wk2","wk3")),price=extract_numeric(Modal_x0020_Price))%>%group_by(District,Variety,wk)
+b<-summarise(a,mp=mean(price))%>%spread(wk,mp)%>%mutate(wk2Percentage=wk2*100/wk1,wk3Percentage=wk3*100/wk1)
+shp<-readOGR("../maps/Districts/Census_2011")
+shp@data<-left_join(shp@data,b,by=c("DISTRICT"="District"))
+shp@data<-shp@data%>%mutate(popup=paste0("Week 2=",wk2Percentage, "<br/>Week3=",wk3Percentage))
+pal<-colorBin(rev(topo.colors(10)),shp$Amount,na.color="#ffffff")
+leaflet(shp)%>%
+addTiles(urlTemplate = "http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png") %>%
+addPolygons(stroke=F,fillColor =pal(shp$wk3Percentage), popup=shp$popup)  %>%
+addLegend(position = 'topright', pal=pal,values=shp$wk3Percentage, opacity = 0.4,       title = 'Banana Wholesale rate Nov 2 to Nov 19')
+
+```
