@@ -1,0 +1,40 @@
+---
+title: "FDI"
+author: "Vijayvithal"
+date: "June 17, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = normalizePath('../'))
+options(digits=4,scipen = 9)
+crore<-10000000
+lakh<- 100000
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gdata)
+library(readr)
+```
+```{r dataClean }
+if(!file.exists("data/BX.KLT.DINV.CD.WD.xls"))
+  {
+  download.file("http://api.worldbank.org/v2/en/indicator/BX.KLT.DINV.CD.WD?downloadformat=excel","data/BX.KLT.DINV.CD.WD.xls",mode="wb")
+}
+fdi<-read.xls("data/BX.KLT.DINV.CD.WD.xls",1,skip = 2)
+fdi_clean<-fdi%>%
+  gather(Year,Amount,matches("^X"))%>%
+  select(Country.Name,Year,Amount)%>%
+  mutate(Year=parse_numeric(Year),Amount=parse_numeric(Amount))
+fdi_clean<-fdi_clean[complete.cases(fdi_clean$Amount),]%>%arrange(desc(Amount))
+brics<-filter(fdi_clean,grepl("ndia|^China$|ussia|razil|outh Africa|^World$",fdi_clean$Country.Name))
+brics<-filter(brics,Year>1990)
+brics<-rename(brics,Country=Country.Name)
+world<-filter(brics,Country=="World")
+brics<-filter(brics,Country!="World")
+ggplot(brics,aes(x=Year,y=Amount,color=Country))+geom_line()+ scale_color_manual(values = c("green","blue","red","black","cyan"))+ylab("FDI Amount")
+ggplot(world,aes(x=Year,y=Amount))+geom_line()+ ylab("FDI Amount")
+filter(brics,Year==2014)
+
+```
