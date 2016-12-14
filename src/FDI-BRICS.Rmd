@@ -16,6 +16,7 @@ library(dplyr)
 library(tidyr)
 library(gdata)
 library(readr)
+getwd()
 ```
 ```{r dataClean }
 if(!file.exists("data/BX.KLT.DINV.CD.WD.xls"))

@@ -6,6 +6,7 @@ output:  html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = normalizePath('../'))
 options(digits=4,scipen = 9)
 library(xlsx)
 library(dplyr)

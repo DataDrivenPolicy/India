@@ -5,7 +5,8 @@ output:
     self_contained: no
   html_notebook: default
 ---
-```{r}
+```{r setup}
+
 rm(list=ls())
 library(XML)
 library(dplyr)
@@ -13,24 +14,71 @@ library(tidyr)
 library(lubridate)
 library(rgdal)
 library(leaflet)
+library(xtable)
+library(ggplot2)
+knitr::opts_knit$set(root.dir = normalizePath('../'))
+knitr::opts_chunk$set(fig.width=12, fig.height=8, echo=FALSE, warning=FALSE, message=FALSE)
+options(digits=4,scipen = 9)
 ```
-There are reports of various informal markets collapsing due to demonetisation. A collapse in market should result in either low volume of goods sold or if the volume
-```{r}
-if(!file.exists("Banana_2016.xml")){
-  download.file("https://data.gov.in/sites/default/files/Banana_2016.xml")
+There are reports of various informal markets collapsing due to demonetisation. 
+A market can collapse due to one of the following factors.
+
+1. Fall in Supply.
+2. Fall in Demand.
+3. Logistic problems which prevent connection of supply to demand.
+
+A collapse in market should result in either low volume of goods sold or if the volume is constant then it should result in lower prices for the goods.
+
+An increase in price can indicate either low supply or a high demand. Similarly a decrease in price can indicate either a high supply or a low demand.
+
+And finally an increase and/or decrease can also indicate lack of a marketplace for supply and demand to meet.
+```{r cleanup , cache=TRUE}
+getwd()
+if(!file.exists("data/Banana_2016.xml")){
+  download.file("https://data.gov.in/sites/default/files/Banana_2016.xml",destfile = "data/Banana_2016.xml")
 }
-x<-xmlParse("Banana_2016.xml")
+x<-xmlParse("data/Banana_2016.xml")
 y<-getNodeSet(x,'//Table')
 z<-xmlToDataFrame(y)
-a<-z%>%mutate(Date=dmy(Arrival_Date))%>%filter(Date>dmy("01/11/2016"))%>%mutate(wk=ifelse(Date<dmy("09/11/2016"),"wk1",ifelse(Date<dmy("15/11/2016"),"wk2","wk3")),price=extract_numeric(Modal_x0020_Price))%>%group_by(District,Variety,wk)
-b<-summarise(a,mp=mean(price))%>%spread(wk,mp)%>%mutate(wk2Percentage=wk2*100/wk1,wk3Percentage=wk3*100/wk1)
+```
+```{r}
+a<-z%>%
+  mutate(Date=dmy(Arrival_Date))%>%
+  filter(Date>dmy("01/10/2016"))%>%
+  mutate(Week=as.numeric(Date-dmy("01/11/2016"))%/%7)%>%
+  mutate(Week=paste0("Week",Week),Price=extract_numeric(Modal_x0020_Price))%>%
+group_by(District,Variety,Week)%>%
+ summarise(mp=mean(Price)) %>%
+  spread(Week,mp)%>%
+  mutate(percentage=Week0)%>%
+  gather(weeks,Average,starts_with("Week"))
+a<-a[complete.cases(a$percentage),]
+
+    b<-a%>%
+      mutate(percentage=100*Average/percentage)%>%
+      ungroup()%>%
+  group_by(District,weeks)%>%
+  summarise(meanPercentage=mean(percentage))%>%
+      spread(weeks,meanPercentage)
+c<-b%>%gather(Weeks,Percentage,starts_with("Week"))%>%ungroup()%>%group_by(Weeks)
+c<-c[complete.cases(c),]
+d<-c%>%summarise(Mean=mean(Percentage),Median=median(Percentage),Min=min(Percentage),Max=max(Percentage))
+ggplot(c,aes(Percentage,fill=Weeks))+geom_histogram(position="dodge")+facet_wrap(~Weeks)
+```
+
+```{r,results="asis"}
+
+print(xtable(d,caption ="Weekly Percentage Price movement"),type="html")
+```
+
+```{r map}
 shp<-readOGR("../maps/Districts/Census_2011")
 shp@data<-left_join(shp@data,b,by=c("DISTRICT"="District"))
-shp@data<-shp@data%>%mutate(popup=paste0("Week 2=",wk2Percentage, "<br/>Week3=",wk3Percentage))
-pal<-colorBin(rev(topo.colors(10)),shp$Amount,na.color="#ffffff")
+shp@data<-shp@data%>%mutate(popup=paste0("<b>District=",DISTRICT,"</b><br/>","Week 1=",Week1, "<br/>Week2=",Week2, "<br/>Week3=",Week3))
+pal<-colorBin(rev(topo.colors(10)),shp$Week3,na.color="#ffffff")
 leaflet(shp)%>%
 addTiles(urlTemplate = "http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png") %>%
-addPolygons(stroke=F,fillColor =pal(shp$wk3Percentage), popup=shp$popup)  %>%
-addLegend(position = 'topright', pal=pal,values=shp$wk3Percentage, opacity = 0.4,       title = 'Banana Wholesale rate Nov 2 to Nov 19')
+addPolygons(stroke=F,fillColor =pal(shp$Week3), popup=shp$popup)  %>%
+addLegend(position = 'topright', pal=pal,values=shp$Week3Percentage, opacity = 1.0,       title = 'Banana Wholesale rate Nov 2 to Nov 28')
 
 ```
