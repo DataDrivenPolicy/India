@@ -3,12 +3,8 @@ title: "Universal Banking, Cashless economy, Digital wallets, Jumla or a promise
 author: "Vijayvithal"
 date: "December 5, 2016"
 output:
-  html_document: 
-    fig_caption: yes
-    self_contained: no
-  html_fragment:
-    self_contained: no
-  html_notebook: default
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -17,6 +13,7 @@ knitr::opts_knit$set(root.dir = normalizePath('../'))
 knitr::opts_chunk$set(fig.width=12, fig.height=8, echo=FALSE, warning=FALSE, message=FALSE)
 options(digits=4,scipen = 9)
 library(XML)
+library(mapview)
 library(dplyr)
 library(tidyr)
 library(lubridate)
@@ -31,7 +28,7 @@ crore<-100*lakh
 lakhcrore<-lakh*crore
 ```
 
-```{r getData,cache=T }
+```{r getData,cache=T,include=FALSE }
 #Check if data is already downloaded
 if(!file.exists("data/Banks.xlsx")){
   download.file("https://dbie.rbi.org.in/DBIE/MOFResultDisplayexcel.jsp?value_CENTERS=-1&value_BANK_CODE=-1&value_BANK_CODE_TYPE=-1&value_DISTRICTS=-1&value_STATES=19,80,09,01,06,39,71,69,67,68,54,34,46,44,07,84,96,89,70,60,15,02,03,14,29,16,99,30,50,17,90,81,18,20,21,10&value_BANKNAMES=-1&value_ADDRESS=-1&value_BANKWRK=rbi&sidx=C_REG_DESC&sord=asc",destfile = "data/Banks.xlsx")
@@ -64,7 +61,7 @@ id<-1:641
 shp@data<-mutate(shp@data,id=id)
 
 #Perform any required cleanup.
-banks1<-banks%>%select(District,State)%>%merge(rbiDup,all.x=T,by="District")%>%mutate(District=ifelse(is.na(uniq),District,paste0(District,"(",State,")")))
+banks1<-banks%>%select(District,Center,State)%>%merge(rbiDup,all.x=T,by="District")%>%mutate(District=ifelse(is.na(uniq),District,paste0(District,"(",State,")")))
 nameVar<-read_excel("data/RBI_MAP_FIX.xlsx",2)
 renameVar<-read_excel("data/RBI_MAP_FIX.xlsx",4)%>%mutate(`Census District`=toupper(`Census District`),District=toupper(District))
 banks1<-merge(banks1,nameVar,by="District",all.x=T)%>%
@@ -76,47 +73,61 @@ banksum<-banks1%>%ungroup()%>%group_by(District)%>%summarise(numBanks=n())
 ```
 # Introduction
 
-The nation is trying a massive financial experiment, Initially called Demonetisation and war on terrorism/black money. It has slowly morphed to a war on informal sector and efforts to bring every transaction into the banking system.
+The nation is trying a massive financial experiment, Initially called demonetisation and war on terrorism/black money. It has slowly morphed into a war on the informal sector and efforts to bring every transaction into the banking system.
 
-To bring every transaction into the banking system we need a robust banking infrastructure. This article evaluates the current banking infrastructure and evaluates whether it is technically feasible to formalise the informal sector.
+To bring every transaction into the banking system we need a robust banking infrastructure. If every employer pays his staff via bank transfer's then the staff should be able to withdraw their salary without major expenditure of time.
 
-A move to cashless economy requires Universal access to banking.
+For the conversion to a formal economy to be technically feasible and successful similar convenience should be available in the rural and non metro sector. 
 
-So an analysis of banking in India needs to answer the following questions.
+## Banking convinence
 
-1. Is the Infrastructure in place?
-1. Are the people in a position to use the infrastructure.
+Any service, in order to be used, should be available and convenient. For a person currently doing cash transactions, once he receives his salary he can perform a cash transaction for obtaining goods and services with zero transaction delay. Once the employer of such a person is asked to be a part of formal economy and pay salary via bank transfer, then the employee needs to perform an additional step of first withdrawing the salary from the bank.
 
-In this article we analyse RBI's Banking data to find an answer to the first question.
+The very first question that needs to be answered is, is the new process(banking) as easy as the old? does the employee need to spend additional time to receive his salary? if yes, how much?
 
-Any service, in order to be used should be available and convenient. If we expect someone to start keeping his savings in a bank and withdraw it on need basis from an ATM then we need to ask the question:
+The additional time required to withdraw his salary depends on two things
 
-1. What is the optimal distance of the bank/ATM from his house?
-1. How much time should he spend in the bank/ATM?
+1. Distance of the bank/ATM from his house.
+1. Number of people standing in the queue at the  Bank/ATM
 
-If the physical bank location does not meet the criteria answered by the above questions then the person will prefer using cash and keeping cash at home.
 
-For the bank to provide an service point (either a branch or an ATM) the questions are...
+The readers of this article may have 6-7 banks and around 8-10 ATM's within 1 KM radius of their home and office. Under normal circumstances their banking burden is at most a few minutes of effort to withdraw cash from the nearest ATM while running errands.
+
+If visiting the bank required a bus journey to the district/taluka headquarters and/or standing in a queue for hours then, will we exhibit the same banking pattern?
+
+A customer would prefer to have his Bank or ATM next door so that he can transact with minimum hassle.
+
+
+## Bank viability
+
+For the bank to provide a service point (either a branch or an ATM) the questions are...
 
 1. Is it financially viable? i.e. How many customers will use it? What will be the minimum deposit from them?
 1. Is it secure? Does the area have major incidents of lawlessness (Naxalism, insurgency, terrorism, dacoity, goondaism etc.)
 
-If the answer to any of these question is a no, then the banks will not be willing to provide the required banking service in that region.
+If the answer to any of these question is negative, then the banks will not be willing to provide the required banking service in that region.
 
-# Banking Experience
+Banks are not in the business of saving/salary account maintenance. They are in the business of lending other peoples money. To setup a branch office staffed with a manager, accountant, cashier, teller, guard etc. requires investment in terms of lakhs of rupees per month for salary alone, to this we should also add the building rental, networking infrastructure, IT, electricity, transport and other costs.
 
-If we expect everyone to keep their savings in the bank, how close should the nearest bank be? The readers of this article may have 6-7 banks and around 8-10 ATM's within 1 KM radius of their home and office. Under normal circumstances their banking burden is at most a few minutes of effort to withdraw cash from the nearest ATM while running errands.
-If visiting the bank required a bus journey to the district/taluka headquarters or standing in a queue for hours then will they exhibit the same banking pattern?
+An analysis of a profitable [rural bank](http://www.nehu.ac.in/Journals/NEHUJournalJan_June2014_Art4.pdf) finds:
 
-What is the median Banking distance across India?
-Assuming a customer at a bank branch requires only 5 minutes of facetime with the banking officer, of the 28 hours/week when the banks interacts with its customers the officer services `r 28*60/5` customers i.e. in a month `r 30*28*60/(5*7)` customers can be served.
-If the number of customers at the branch goes above this number than additional staff need to be employed.
+1. The bank branch is serving a population of ~51,000 with 4 employees.
+2. The branch has an annual expenditure of `r 7802*1000/lakh` lakhs.
 
-So our Banking assessment is on two factors,
+```{r}
+rural<-dp%>%filter(classification=="Rural")%>%filter(persons>0)%>%mutate(averagePopulation=persons/inhabitedVillage)
+median_village_pop<-median(rural$persons/rural$inhabitedVillage)
+ggplot(rural,aes(x=averagePopulation))+
+geom_histogram(binwidth = 500)+ylab("number of district")+xlab("Average village population")
 
-1. How near is the bank and
-1. how long is the queue at the bank(a factor of how many potential customers can be served by the bank);
+```
 
+
+With 82% of Indian villages having a population of less than 2,000. (The districtwise median rural population is  `r median_village_pop` persons.)
+
+ The branch in the above study would support `r 51000/median_village_pop` villages. Providing near home banking would mean increasing the banking density to say, one branch per village.
+ 
+ The expenditure required to run these additional branches will be more or less equal to the expenditure required to run a single branch. Since the population served has reduced from 51000 to `r median_village_pop` people it will result in a fall in the per branch income impacting profitability.
 
 ```{r CreateMapData}
 #Read duplicate names and uniquify them.
@@ -150,69 +161,100 @@ md<-shp@data
 
 # Area covered by each branch in a given district.
 
-```{r mappingArea}
+Having established nearness of the bank as one of the criteria for transition to formal economy, Let us see what is the average distance between bank branches in each district.
+
+(Note the numbers calculated here are optimistic as a majority of bank branches are typically found in the district headquarters which will actually result in greater distance for rural places in the same district.)
+
+```{r mappingArea,screenshot.force = TRUE}
+#
 #Area wise distribution of Banks
 a<-quantile(shp$areaPerBank,probs = seq(0,1,.1),na.rm = T)
 pal<-colorBin(topo.colors(10),shp$areaPerBank,bin=a,na.color="#ff0000")
-leaflet(shp)%>%
+map<-leaflet(shp)%>%
 addTiles(urlTemplate = "http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png") %>%
 addPolygons(stroke=F,fillColor =pal(shp$areaPerBank), popup=shp$popup)  %>%
 addLegend(position = 'topright', pal=pal,values=shp$areaPerBank, opacity = 1.0,       title = 'Area covered by each Branches/District')
+#mapshot(map,file="areaPerBank.png")
+map
 ```
-Looking at the Branch density per unit area we find a few interesting things.
+Looking at the Branch density per district we find a few interesting things.
 
-1. Banking density is good along the Gangaitic plain. From Punjab, Delhi, Kanpur, Lucknow to Kolkatta.
+1. Banking density is good along the Gangatic plain. From Punjab, Delhi, Kanpur, Lucknow to Kolkatta.
 1. Banking is again good in the south, in the area below Chennai and Bangalore.
-1. The third zone is the stretch from Pune-Mumbai to Ahmedabad
+1. The third zone is the stretch from Pune-Mumbai to Ahmadabad
 1. The fourth zone is the coastal strip from Kolkatta to Hyderabad.
 1. Other then these we have a few zones around cities like Nagpur, Indore, Bhopal etc. But as a whole the Banking density in the rest of India is low.
 
-## Urban and rural divide in distribution of banking.
-
-Banks are in the business of lending other people's money. So you will typically find banks at places where their business is.
-Taking the example of a place like Bhopal we find.
-```{r}
-bhopal<-filter(banks,District=="BHOPAL")
-count_centers<-bhopal%>%group_by(Center)%>%summarise(k=n())%>%arrange(desc(k))
-bhopal_profile<- total%>%filter(District=="BHOPAL")
-```
- Bhopal city(area 463 sqkm) is a part of Bhopal District(2772 sq km) and out of the total `r sum(count_centers$k)` branches in the district, the city has `r count_centers[1,]$k` branches. The remaining  `r bhopal_profile$inhabitedVillage` villages and `r bhopal_profile$towns -1` towns share the remaining `r sum(count_centers$k) - count_centers[1,]$k` branches.
-
-In general Urban Centers, Metro's etc will have banks at every kilometer or even less and in every locality while tens of villages will share one bank among them. At the worst end of the spectrum, the nearest bank may be hundreds of Km away.
-
-The median banking area in India is `r median(md$areaPerBank)` sqkm.
+The median banking area in India is `r median(md$areaPerBank,na.rm=T)` sq km. per bank.
 
 While the long tail goes on for thousands of Km, the histogram of the area covered by banks tells us that very few districts provide banks within 10 km radius to their citizens.
 ```{r}
 ggplot(md%>%filter(areaPerBank<100),aes(x=areaPerBank)) + geom_histogram(binwidth = 10)+ylab("number of district")
 ```
+
+
+## Urban and rural divide in distribution of banking.
+
+Since banks are in the business of lending other people's money, you will typically find banks at places where their business is.
+
+Taking the example of a place like Bhopal we find.
+```{r}
+bhopal<-filter(banks,District=="BHOPAL")
+count_centers<-bhopal%>%group_by(Center)%>%summarise(k=n())%>%arrange(desc(k))
+bhopal_profile<- total%>%filter(District=="BHOPAL")
+hq<-banks%>%rowwise() %>% mutate(HQ=grepl(District,Center,ignore.case=T))
+hqsum<-hq%>%group_by(District)%>%summarise(HQ_sum=sum(HQ),HQ_tot=n())%>%mutate(percentage=HQ_sum*100/HQ_tot)
+bhopal_rural<-dp%>%filter(District=="BHOPAL")%>%filter(classification=="Rural")
+bhopalRuralBankDensity<-bhopal_rural$persons/(sum(count_centers$k) - count_centers[1,]$k)
+bhopal_urban<-dp%>%filter(District=="BHOPAL")%>%filter(classification=="Urban")
+bhopalUrbanBankDensity<-bhopal_urban$persons/(count_centers[1,]$k)
+
+```
+ Bhopal city(area 463 sq km) is a part of Bhopal District(2772 sq km) and out of the total `r sum(count_centers$k)` branches in the district, the city has `r count_centers[1,]$k` branches. The remaining  `r bhopal_profile$inhabitedVillage` villages and `r bhopal_profile$towns -1` towns share the remaining `r sum(count_centers$k) - count_centers[1,]$k` branches.
+ 
+ Some of the districts with more than 70% bank branches in the District HQ are
+ 
+```{r}
+kable(hqsum%>%filter(percentage>70)%>% rename(Total_Banks=HQ_tot,Banks_at_HQ=HQ_sum))
+```
+
+In general Urban Centers, Metro's etc will have banks at every kilometer or even less and in every locality while tens of villages will share one bank among them. At the worst end of the spectrum, the nearest bank may be hundreds of Km away.
+
 # Population covered by each branch in a given district.
 
 To answer the second question, i.e. how long the line/wait time is we need to observe the theoretical count of the number of people served by Banks. 
 
-```{r mappingPop}
+Note, This again suffers from an optimistic estimation error as there will be more banks in the urban sector and less in the rural. Taking the example of Bhopal the urban population/bank density is `r bhopalUrbanBankDensity` people/bank and the rural density is `r bhopalRuralBankDensity` people/bank.
+
+
+```{r mappingPop,screenshot.force = TRUE}
+#
 #Population wise distribution of Banks
 a<-quantile(shp$popPerBank,probs = seq(0,1,.1),na.rm = T)
 pal<-colorBin(topo.colors(10),shp$popPerBank,bin=a,na.color="#ff0000")
-leaflet(shp)%>%
+map<-leaflet(shp)%>%
 addTiles(urlTemplate = "http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png") %>%
 addPolygons(stroke=F,fillColor =pal(shp$popPerBank), popup=shp$popup)  %>%
 addLegend(position = 'topright', pal=pal,values=shp$popPerBank, opacity = 1.0,       title = 'Population covered by each branch/District')
+#mapshot(map,file="popPerBank.png")
+map
 ```
 
 If we expect every person to hold a bank account and transact at least once each month with his bank, then we need to estimate whether the banks can serve the population properly.
 
-Currently the median population served per bank would be `r median(md$popPerBank)` people/bank. 
-ggplot(md%>%filter(popPerBank<25000 && popPerBank>1),aes(x=popPerBank)) + geom_histogram(binwidth = 2000)+ylab("number of district")
+Currently the median population served per bank would be `r median(md$popPerBank,na.rm=T)` people/bank. 
+
+```{r}
+ggplot(md%>%filter(popPerBank<25000)%>%filter(popPerBank>1),aes(x=popPerBank)) + geom_histogram(binwidth = 2000)+ylab("number of district")
+```
 
 When the population map is compared with the area map we find that While the north, the south and to some extent the west has a good ratio of bank to the population, the Gangatic region and the east which has a good area wise distribution cannot service its population.
 
-Central India fails on both the metrics area and population.
-
-
-Currently the heavily overburdened banks are 
+Central India fails on both the metrics, area as well as population.
+  
+Currently some of the heavily overburdened banks are 
 ```{r}
-kable(tail(md%>%arrange(popPerBank)%>%filter(State !="NCT OF DELHI")%>%select(DISTRICT,State,numBanks:popPerBank,persons)))
+kable(tail(md%>%arrange(popPerBank)%>%filter(State !="NCT OF DELHI")%>%select(DISTRICT,State,numBanks:popPerBank,persons)),padding=2)
 ```
 
 and the less burdened ones are
@@ -224,21 +266,27 @@ kable(head(md%>%arrange(popPerBank)%>%filter(State !="NCT OF DELHI")%>%select(DI
 
 # Bottomline.
 
+From a purely economical point of view, urban centers generally have better facilities(all types not just banking) compared to rural centers because the high population density in urban centers results in more population served per sq km covered by a service infrastructure. Where as in rural centers to achieve the same population coverage a larger area should be covered by the service delivery point. Beyond a certain distance access to the service delivery point becomes inconvenient and the population decides not to use the service.
+
+Specifically for banks, when residents of small hamlets with 100-400 households have to travel tens of km to access their bank(Note the same factors which lead to scarcity of bank branches also leads to scarcity of bus and other transport services) accessing banking services on regular basis becomes inconvenient.
+Area's with low population density will also have police and other services at distance so security of manned or unmanned ATM's is also a problem.
+
 *Cashless Economy*
 
 The PM's promise of cashless economy is not possible in the near future, at best it is a Jumla to calm troubled minds in this period of economic stress. At worst it is another unplanned economic disaster.
 
 *Universal Banking*
 
-The banks need to invest a huge amount to create the infrastructure required for 'near home banking' till then the accounts will continue remaining dormant.
+The banks need to invest a huge amount to create the infrastructure required for 'near home banking', recent efforts in Banking correspondents and setting up micro banks is a effort in the right direction, till then the accounts will continue remaining dormant.
+Creating the required banking infrastructure for the poorest of the poor will require creative thinking to reduce the bank expenditure.
 
-If instead of the current status where less than 25% of the population have an active bank account, every citizen had an active bank account then the banks will crumble under the overload.
+If instead of the current status where less than 25% of the population have an active bank account every citizen had an active bank account, with easy near home access to banks and a low deposit of a few thousands only  then the banks will crumble under this load.
 
 ## Data Accuracy.
 
 Two sources of inaccuracy may take place, the first in the data collection and reporting, e.g. when a district is divided the old banks may not have updated their address with RBI resulting in most of the banks in the new district still being associated with the old district. We see this with the Banks in Delhi.
 
-The second is in cleaning up the data. Since around 90 new districts came into existance after the 2011 census, a call had to be taken on how to merge the various dataset. The decision taken was, to merge the new district data into the census districts. This merging process may result in inaccurate computation for those districts.
+The second is in cleaning up the data. Since around 90 new districts came into existence after the 2011 census, a call had to be taken on how to merge the various dataset. The decision taken was, to merge the new district data into the census districts. This merging process may result in inaccurate computation for those districts.
 
 # Analysis method.
 
@@ -263,3 +311,6 @@ Recent reports (Nov 30 2016 http://economictimes.indiatimes.com/tech/internet/in
 If we count both broadband and narrowband internet this number raises to 24% (12% rural and 49% Urban) Places like Bihar register rural internet numbers as low as 6.77%. (Source http://www.trai.gov.in/WriteReadData/PIRReport/Documents/Indicator-Reports-Mar12082015.pdf)
 
 Unless this number rises to near 100% from the current 7% Digital economy may remain just a dream.
+
+# Opensource analysis.
+The code used to create this report and associated files are available at https://github.com/DataDrivenPolicy/India/blob/master/src/Banks.Rmd
